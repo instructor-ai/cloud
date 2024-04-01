@@ -1,0 +1,4 @@
+instructor
+fastapi
+pydantic
+uvicorn
