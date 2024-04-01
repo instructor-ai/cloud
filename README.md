@@ -17,3 +17,5 @@ To run the FastAPI server, use the following command:
 ```sh
 uvicorn run:app --reload
 ```
+
+## Give us a star, and feel free to fork this repo to actually deploy a service
