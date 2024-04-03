@@ -2,3 +2,4 @@ instructor
 fastapi
 pydantic
 uvicorn
+anthropic
