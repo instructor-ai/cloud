@@ -1,0 +1,24 @@
+output_schema:
+  name: UserDetail
+  prompt: "Extracting a user"
+  properties:
+    - title: name
+      type: str
+      prompt: "What is the user's name?"
+    - title: age
+      type: int
+      prompt: "How old is the user?"
+
+input_schema:
+  name: Request
+  properties:
+    - title: data
+      type: str
+
+prompt:
+  - role: system
+    content: "You are a name extractor"
+  - role: user
+    content: "extract {{data}}"
+
+model: gpt-4-turbo

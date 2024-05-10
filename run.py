@@ -5,45 +5,58 @@ from pydantic import BaseModel
 
 
 import instructor
+from configs import load_configs
 import openai
 
 app = FastAPI()
-client = instructor.from_openai(openai.OpenAI(), model="gpt-4-turbo-preview")
+client = instructor.from_openai(openai.OpenAI())
 
 
-class Property(BaseModel):
-    name: str
-    value: str
+for config in load_configs():
+    OutputModel = config.create_output_model()
+    InputModel = config.create_input_model()
+    path = config.path
 
+    @app.post(path, response_model=OutputModel)
+    def extract_data(input: InputModel):
+        return client.chat.completions.create(
+            model=config.model,
+            messages=config.messages(input),
+            response_model=OutputModel,
+        )
 
-class User(BaseModel):
-    name: str
-    age: int
-    properties: List[Property]
+    @app.post(f"{path}/list")
+    def extract_data_list(input: InputModel):
+        objs = client.chat.completions.create_iterable(
+            model=config.model,
+            messages=config.messages(input),
+            response_model=OutputModel,
+        )
+        return [obj for obj in objs]
 
+    @app.post(f"{path}/list/stream")
+    def extract_data_list_stream(input: InputModel):
+        def stream():
+            for obj in client.chat.completions.create_iterable(
+                model=config.model,
+                messages=config.messages(input),
+                response_model=OutputModel,
+                stream=True,
+            ):
+                yield obj
 
-@app.post("/v1/extract_user", response_model=User)
-def extract_user(text: str):
-    user = client.chat.completions.create(
-        messages=[
-            {"role": "user", "content": f"Extract user from `{text}`"},
-        ],
-        response_model=User,
-    )
-    return user
+        return StreamingResponse(stream(), media_type="text/event-stream")
 
+    @app.post(f"{path}/stream")
+    def extract_data_stream(input: InputModel):
+        user_stream = client.chat.completions.create_partial(
+            model=config.model,
+            messages=config.messages(input),
+            response_model=OutputModel,
+        )
 
-@app.post("/v1/extract_user_stream")
-def extract_user_stream(text: str):
-    user_stream = client.chat.completions.create_partial(
-        messages=[
-            {"role": "user", "content": f"Extract user from `{text}`"},
-        ],
-        response_model=User,
-    )
+        def stream():
+            for partial_user in user_stream:
+                yield f"data: {partial_user.model_dump_json()}\n\n"
 
-    def stream():
-        for partial_user in user_stream:
-            yield f"data: {partial_user.model_dump_json()}\n\n"
-
-    return StreamingResponse(stream(), media_type="text/event-stream")
+        return StreamingResponse(stream(), media_type="text/event-stream")
