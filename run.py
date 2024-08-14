@@ -8,7 +8,7 @@ import instructor
 import openai
 
 app = FastAPI()
-client = instructor.from_openai(openai.OpenAI(), model="gpt-4-turbo-preview")
+client = instructor.from_openai(openai.OpenAI(), model="gpt-4o-mini")
 
 
 class Property(BaseModel):
